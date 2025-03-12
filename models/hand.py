@@ -48,6 +48,7 @@ class Hand:
         values = sorted([CARD_VALUES[card.value] for card in self.cards])
         
         # Check for regular straight
+        # len(values) check there are 5 vals; len(set(values)) checks there are 5 unique vals
         if len(values) == 5 and values[4] - values[0] == 4 and len(set(values)) == 5:
             return True
             
@@ -58,5 +59,27 @@ class Hand:
         return False
     
     def has_flush(self):
+        for i in range(0,4):
+            if self.cards[i].suit != self.cards[i+1].suit: return False
+        return True
         # Check if all cards have the same suit
-        return len(set(card.suit for card in self.cards)) == 1
+        # Alt: use a set base approach with one-shot answer
+        #return len(set(card.suit for card in self.cards)) == 1
+
+    def has_full_house(self):
+        # 3 of a kind + a pair
+        rankCounts = self.get_rank_counts()
+        return set(v for v in rankCounts.values()) == {2,3}
+    
+    def has_four_of_a_kind(self):
+        """Check if the hand contains four of a kind."""
+        rank_counts = self.get_rank_counts()
+        return 4 in rank_counts.values()
+    
+    def has_straight_flush(self):
+        """Check if the hand contains a straight flush."""
+        return self.has_straight() and self.has_flush()
+    
+    def has_royal_flush(self):
+        if not self.has_straight_flush(): return False
+        return set(card.value for card in self.cards) == {'10', 'J', 'Q', 'K', 'A'}
