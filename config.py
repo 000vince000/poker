@@ -15,4 +15,4 @@ CARD_VALUES = {
 }
 
 # Card suits
-CARD_SUITS = ['Clubs','Diamonds','Heart','Spades'] 
+CARD_SUITS = ['Clubs','Diamonds','Hearts','Spades'] 
