@@ -148,23 +148,17 @@ class Game:
             
         actions = ["fold"]  # Fold is always valid
         
-        # Calculate how much more the player needs to call
-        call_amount = self.current_bet - player.current_bet
-        
         # Check is valid if player has matched the current bet
-        if call_amount == 0:
+        if player.current_bet == self.current_bet:
             actions.append("check")
             
         # Call is valid if there's a bet to match and player has chips
-        if call_amount > 0 and player.chips >= call_amount:
+        if player.current_bet < self.current_bet and player.chips > 0:
             actions.append("call")
             
         # Raise is valid if player has enough chips to raise
-        # Player needs enough chips to call plus at least the minimum raise increment
-        min_raise_increment = self.current_bet - 0  # Minimum raise is the current bet amount
-        min_total_amount = call_amount + min_raise_increment
-        
-        if player.chips >= min_total_amount:
+        min_raise_amount = self.current_bet * 2 - player.current_bet
+        if player.chips >= min_raise_amount:
             actions.append("raise")
             
         return actions
@@ -219,7 +213,7 @@ class Game:
             print(f"Invalid action: {action}")
             return False
             
-    def betting_round(self, get_human_action, get_npc_action):
+    def betting_round(self, func_get_human_action, func_get_npc_action):
         """
         Run a complete betting round where each player acts in turn.
         
@@ -261,9 +255,9 @@ class Game:
                 
             # Get action from either human or NPC
             if player.is_human:
-                action, amount = get_human_action(self, valid_actions)
+                action, amount = func_get_human_action(self, valid_actions)
             else:
-                action, amount = get_npc_action(self, valid_actions)
+                action, amount = func_get_npc_action(self, valid_actions)
                 
             # Execute the action
             if not self.execute_action(action, amount):
