@@ -5,6 +5,7 @@ from models.deck import Deck
 from models.hand import Hand
 from models.player import Player
 from config import STARTING_CHIPS, SMALL_BLIND, BIG_BLIND
+import itertools
 
 class Game:
     def __init__(self, player_names):
@@ -144,17 +145,23 @@ class Game:
             
         actions = ["fold"]  # Fold is always valid
         
+        # Calculate how much more the player needs to call
+        call_amount = self.current_bet - player.current_bet
+        
         # Check is valid if player has matched the current bet
-        if player.current_bet == self.current_bet:
+        if call_amount == 0:
             actions.append("check")
             
         # Call is valid if there's a bet to match and player has chips
-        if player.current_bet < self.current_bet and player.chips > 0:
+        if call_amount > 0 and player.chips >= call_amount:
             actions.append("call")
             
         # Raise is valid if player has enough chips to raise
-        min_raise_amount = self.current_bet * 2 - player.current_bet
-        if player.chips >= min_raise_amount:
+        # Player needs enough chips to call plus at least the minimum raise increment
+        min_raise_increment = self.current_bet - 0  # Minimum raise is the current bet amount
+        min_total_amount = call_amount + min_raise_increment
+        
+        if player.chips >= min_total_amount:
             actions.append("raise")
             
         return actions
@@ -224,6 +231,9 @@ class Game:
         players_acted = set()
         last_raiser = None
         
+        # Get all active players at the start of the round
+        active_players = [p for p in self.players if not p.is_folded]
+        
         # Continue until all active players have acted and bets are matched
         while True:
             player = self.players[self.current_player_index]
@@ -260,20 +270,21 @@ class Game:
             # If player raised, track them as the last raiser and clear acted set
             if action == "raise":
                 last_raiser = player
-                players_acted = set()
+                # Only players who have already acted need to act again
+                players_acted = {p for p in players_acted if p.is_folded or p.is_all_in}
             
             # Add player to acted set
             players_acted.add(player)
             
-            # Check if round is complete
+            # Re-calculate active players after this action
             active_players = [p for p in self.players if not p.is_folded]
             
             if len(active_players) == 1:
                 # Only one player left, they win
                 return False
                 
-            # Round is complete when all players have acted and all bets are matched
-            if len(players_acted) == len(active_players) and all(
+            # Round is complete when all active players have acted and all bets are matched
+            if all(p in players_acted for p in active_players) and all(
                 p.current_bet == self.current_bet or p.is_all_in for p in active_players
             ):
                 return True
@@ -283,3 +294,88 @@ class Game:
                 break
                 
         return True
+
+    def evaluate_hand(self, player):
+        """
+        Evaluate the best 5-card hand for a player.
+        
+        Args:
+            player: The player to evaluate
+            
+        Returns:
+            tuple: (hand_rank, best_hand) where hand_rank is a value 1-9
+                  (1=high card, 2=pair, ..., 9=straight flush)
+        """
+        # Combine player's cards with community cards
+        all_cards = player.hand.cards + self.community_cards.cards
+        
+        # Create all possible 5-card combinations
+        possible_hands = list(itertools.combinations(all_cards, 5))
+        
+        # Find the best hand
+        best_hand_rank = 0
+        best_hand = None
+        
+        for cards in possible_hands:
+            # Create a temporary hand to evaluate
+            temp_hand = Hand()
+            for card in cards:
+                temp_hand.add_card(card)
+                
+            # Check for various poker hands (in descending order of rank)
+            hand_rank = 0
+            
+            if temp_hand.has_royal_flush():
+                hand_rank = 9
+            elif temp_hand.has_straight_flush():
+                hand_rank = 8
+            elif temp_hand.has_four_of_a_kind():
+                hand_rank = 7
+            elif temp_hand.has_full_house():
+                hand_rank = 6
+            elif temp_hand.has_flush():
+                hand_rank = 5
+            elif temp_hand.has_straight():
+                hand_rank = 4
+            elif temp_hand.has_three_of_a_kind():
+                hand_rank = 3
+            elif temp_hand.has_two_pairs():
+                hand_rank = 2
+            elif temp_hand.has_pair():
+                hand_rank = 1
+            else:
+                hand_rank = 0  # High card
+            
+            # Update best hand if this is better
+            if hand_rank > best_hand_rank:
+                best_hand_rank = hand_rank
+                best_hand = temp_hand
+        
+        return best_hand_rank, best_hand
+        
+    def determine_winner(self):
+        """
+        Determine the winner(s) among active players at showdown.
+        
+        Returns:
+            list: List of player(s) who won
+        """
+        active_players = [p for p in self.players if not p.is_folded]
+        
+        # If only one player is active, they win
+        if len(active_players) == 1:
+            return active_players
+            
+        # Evaluate each player's best hand
+        player_hands = []
+        for player in active_players:
+            hand_rank, best_hand = self.evaluate_hand(player)
+            player_hands.append((player, hand_rank, best_hand))
+            
+        # Find the highest hand rank
+        highest_rank = max(rank for _, rank, _ in player_hands)
+        
+        # All players with the highest rank are winners
+        winners = [player for player, rank, _ in player_hands if rank == highest_rank]
+        
+        return winners

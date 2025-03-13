@@ -188,18 +188,25 @@ def play_hand(game):
         
     # Showdown
     print("\n=== SHOWDOWN ===")
-    # For now, just declare player 1 the winner as a placeholder
-    # (We'll implement proper hand evaluation in a future step)
     active_players = [p for p in game.players if not p.is_folded]
     
     print("Remaining players show their hands:")
     for player in active_players:
-        print(f"{player.name}: {player.hand}")
+        hand_rank, best_hand = game.evaluate_hand(player)
+        hand_types = ["High Card", "Pair", "Two Pair", "Three of a Kind", 
+                      "Straight", "Flush", "Full House", "Four of a Kind", 
+                      "Straight Flush", "Royal Flush"]
+        hand_name = hand_types[hand_rank] if hand_rank < len(hand_types) else "Unknown"
+        print(f"{player.name}: {player.hand} - {hand_name}")
     
-    # Temporary simple winner selection
-    winner = active_players[0]
-    print(f"\n{winner.name} wins the pot of {game.pot} chips!")
-    winner.chips += game.pot
+    # Determine winner(s)
+    winners = game.determine_winner()
+    
+    # Split pot if multiple winners
+    share = game.pot // len(winners)
+    for winner in winners:
+        winner.chips += share
+        print(f"{winner.name} wins {share} chips!")
     
     return True
 

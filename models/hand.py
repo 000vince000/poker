@@ -29,19 +29,24 @@ class Hand:
         return counts
     
     def has_pair(self):
-        """Check if the hand contains at least one pair."""
+        """Check if the hand contains exactly one pair and no better hand."""
         rank_counts = self.get_rank_counts()
-        return any(count >= 2 for count in rank_counts.values()) 
+        pairs = sum(1 for count in rank_counts.values() if count == 2)
+        three_of_a_kind = any(count >= 3 for count in rank_counts.values())
+        return pairs == 1 and not three_of_a_kind
     
     def has_two_pairs(self):
+        """Check if the hand contains exactly two pairs."""
         rank_counts = self.get_rank_counts()
-        # count how many times we have a pair in hand
-        num_pairs = sum(1 for v in rank_counts.values() if v == 2)
-        return num_pairs == 2
+        pairs = sum(1 for count in rank_counts.values() if count == 2)
+        return pairs == 2
     
     def has_three_of_a_kind(self):
+        """Check if the hand contains three of a kind but not a full house."""
         rank_counts = self.get_rank_counts()
-        return any(count == 3 for count in rank_counts.values())
+        three_of_a_kind = any(count == 3 for count in rank_counts.values())
+        pairs = any(count == 2 for count in rank_counts.values())
+        return three_of_a_kind and not pairs
     
     def has_straight(self):
         # Get the numeric values of the cards and sort them
@@ -67,14 +72,16 @@ class Hand:
         #return len(set(card.suit for card in self.cards)) == 1
 
     def has_full_house(self):
-        # 3 of a kind + a pair
-        rankCounts = self.get_rank_counts()
-        return set(v for v in rankCounts.values()) == {2,3}
+        """Check if the hand contains a full house (three of a kind and a pair)."""
+        rank_counts = self.get_rank_counts()
+        three_of_a_kind = any(count == 3 for count in rank_counts.values())
+        pairs = any(count == 2 for count in rank_counts.values())
+        return three_of_a_kind and pairs
     
     def has_four_of_a_kind(self):
         """Check if the hand contains four of a kind."""
         rank_counts = self.get_rank_counts()
-        return 4 in rank_counts.values()
+        return any(count == 4 for count in rank_counts.values())
     
     def has_straight_flush(self):
         """Check if the hand contains a straight flush."""
