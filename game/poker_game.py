@@ -98,4 +98,59 @@ class Game:
         # Set first player to act (typically left of dealer)
         self.current_player_index = (self.dealer_position + 1) % len(self.players)
         
-        return new_cards 
+        return new_cards
+        
+    def next_active_player(self):
+        """
+        Find the next active player (not folded).
+        Returns True if successfully moved to the next player, False if no active players remain.
+        """
+        if len(self.players) == 0:
+            return False
+            
+        # Count active players
+        active_players = sum(1 for p in self.players if not p.is_folded)
+        if active_players <= 1:
+            return False  # Game is over or only one player left
+            
+        # Find the next active player
+        start_index = self.current_player_index
+        while True:
+            # Move to the next player; index resets to 0 once everyone is tapped
+            self.current_player_index = (self.current_player_index + 1) % len(self.players)
+            
+            # If we've checked all players and come back to the start, exit
+            if self.current_player_index == start_index:
+                return False
+                
+            # If this player is active, we're done
+            if not self.players[self.current_player_index].is_folded:
+                return True
+                
+    def get_valid_actions(self):
+        """Get the valid actions for the current player."""
+        if len(self.players) == 0 or self.current_player_index >= len(self.players):
+            return []
+            
+        player = self.players[self.current_player_index]
+        
+        # If player is folded or all-in, no actions available
+        if player.is_folded or player.is_all_in:
+            return []
+            
+        actions = ["fold"]  # Fold is always valid
+        
+        # Check is valid if player has matched the current bet
+        if player.current_bet == self.current_bet:
+            actions.append("check")
+            
+        # Call is valid if there's a bet to match and player has chips
+        if player.current_bet < self.current_bet and player.chips > 0:
+            actions.append("call")
+            
+        # Raise is valid if player has enough chips to raise
+        min_raise_amount = self.current_bet * 2 - player.current_bet
+        if player.chips >= min_raise_amount:
+            actions.append("raise")
+            
+        return actions 
