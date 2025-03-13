@@ -21,8 +21,12 @@ class Game:
         
     def setup_game(self, player_names):
         """Initialize players and set up the game."""
-        # Create players
-        self.players = [Player(name, STARTING_CHIPS) for name in player_names]
+        # Create players - first player is human, rest are NPCs
+        self.players = []
+        for i, name in enumerate(player_names):
+            is_human = (i == 0)  # First player (index 0) is human
+            self.players.append(Player(name, STARTING_CHIPS, is_human))
+            
         # Shuffle deck
         self.deck.shuffle()
     
@@ -153,4 +157,129 @@ class Game:
         if player.chips >= min_raise_amount:
             actions.append("raise")
             
-        return actions 
+        return actions
+        
+    def execute_action(self, action, amount=0):
+        """Execute an action for the current player.
+        
+        Args:
+            action: The action to execute (fold, check, call, raise)
+            amount: The amount for raises
+            
+        Returns:
+            bool: True if the action was executed successfully
+        """
+        if len(self.players) == 0 or self.current_player_index >= len(self.players):
+            return False
+            
+        player = self.players[self.current_player_index]
+        
+        # Execute the action
+        if action == "fold":
+            player.fold()
+            print(f"{player.name} folds.")
+            return True
+            
+        elif action == "check":
+            if player.check(self.current_bet):
+                print(f"{player.name} checks.")
+                return True
+            else:
+                print(f"Invalid check: {player.name} must match the current bet of {self.current_bet}.")
+                return False
+                
+        elif action == "call":
+            call_amount = player.call(self.current_bet)
+            self.pot += call_amount
+            print(f"{player.name} calls with {call_amount}.")
+            return True
+            
+        elif action == "raise":
+            raise_amount, success = player.raise_bet(self.current_bet, amount)
+            if success:
+                self.pot += raise_amount
+                self.current_bet = player.current_bet
+                print(f"{player.name} raises to {player.current_bet} (adding {raise_amount}).")
+                return True
+            else:
+                print(f"Invalid raise: {player.name} doesn't have enough chips.")
+                return False
+                
+        else:
+            print(f"Invalid action: {action}")
+            return False
+            
+    def betting_round(self, get_human_action, get_npc_action):
+        """
+        Run a complete betting round where each player acts in turn.
+        
+        Args:
+            get_human_action: Function to get action from human player
+            get_npc_action: Function to get action from NPC
+            
+        Returns:
+            bool: True if round completed successfully, False if game ended
+        """
+        # Track which players have acted and if their bets are matched
+        players_acted = set()
+        last_raiser = None
+        
+        # Continue until all active players have acted and bets are matched
+        while True:
+            player = self.players[self.current_player_index]
+            
+            # Skip folded or all-in players
+            if player.is_folded or player.is_all_in:
+                # Mark as acted and move to next player
+                players_acted.add(player)
+                if not self.next_active_player():
+                    break
+                continue
+                
+            # Get valid actions for current player
+            valid_actions = self.get_valid_actions()
+            
+            # If player has no valid actions, move to next player
+            if not valid_actions:
+                players_acted.add(player)
+                if not self.next_active_player():
+                    break
+                continue
+                
+            # Get action from either human or NPC
+            if player.is_human:
+                action, amount = get_human_action(self, valid_actions)
+            else:
+                action, amount = get_npc_action(self, valid_actions)
+                
+            # Execute the action
+            if not self.execute_action(action, amount):
+                # If action failed, stay with current player
+                continue
+                
+            # If player raised, track them as the last raiser and clear acted set
+            if action == "raise":
+                last_raiser = player
+                players_acted = set()
+            
+            # Add player to acted set
+            players_acted.add(player)
+            
+            # Check if round is complete
+            active_players = [p for p in self.players if not p.is_folded]
+            
+            if len(active_players) == 1:
+                # Only one player left, they win
+                return False
+                
+            # Round is complete when all players have acted and all bets are matched
+            if len(players_acted) == len(active_players) and all(
+                p.current_bet == self.current_bet or p.is_all_in for p in active_players
+            ):
+                return True
+                
+            # Move to next player
+            if not self.next_active_player():
+                break
+                
+        return True

@@ -4,13 +4,14 @@ Player class for representing a player in the poker game.
 from .hand import Hand
 
 class Player:
-    def __init__(self, name, chips=1000):
+    def __init__(self, name, chips=1000, is_human=False):
         self.name = name
         self.chips = chips
         self.hand = Hand()
         self.is_folded = False
         self.is_all_in = False
         self.current_bet = 0
+        self.is_human = is_human  # Flag to distinguish human from NPC players
     
     def place_bet(self, amount):
         """Place a bet with the specified amount."""
