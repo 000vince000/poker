@@ -121,7 +121,18 @@ def handle_early_winner(game):
     winner.chips += game.pot
     return True
 
-def play_hand(game):
+def handle_round(game, round_name):
+    """Handle a complete round of the poker game (deal cards and betting)"""
+    print(f"\n=== {round_name} ===")
+    new_cards = game.next_round()
+    display_community_cards(game.community_cards)
+    
+    print(f"\n=== {round_name} BETTING ===")
+    if not game.betting_round(get_human_action, get_npc_action):
+        return False  # Hand ended early
+    return True
+
+def play(game):
     """Play a complete hand of poker from deal to showdown."""
     print("\n=== NEW HAND ===")
     
@@ -153,35 +164,11 @@ def play_hand(game):
     if not game.betting_round(get_human_action, get_npc_action):
         return handle_early_winner(game)  # Hand ended early
         
-    # Flop
-    print("\n=== FLOP ===")
-    new_cards = game.next_round()
-    display_community_cards(game.community_cards)
-    
-    # Flop betting round
-    print("\n=== FLOP BETTING ===")
-    if not game.betting_round(get_human_action, get_npc_action):
-        return handle_early_winner(game)  # Hand ended early
-        
-    # Turn
-    print("\n=== TURN ===")
-    new_cards = game.next_round()
-    display_community_cards(game.community_cards)
-    
-    # Turn betting round
-    print("\n=== TURN BETTING ===")
-    if not game.betting_round(get_human_action, get_npc_action):
-        return handle_early_winner(game)  # Hand ended early
-        
-    # River
-    print("\n=== RIVER ===")
-    new_cards = game.next_round()
-    display_community_cards(game.community_cards)
-    
-    # River betting round
-    print("\n=== RIVER BETTING ===")
-    if not game.betting_round(get_human_action, get_npc_action):
-        return handle_early_winner(game)  # Hand ended early
+    # Flop, Turn, and River
+    rounds = ["FLOP", "TURN", "RIVER"]
+    for round_name in rounds:
+        if not handle_round(game, round_name):
+            return handle_early_winner(game)  # Hand ended early
         
     # Showdown
     print("\n=== SHOWDOWN ===")
@@ -218,7 +205,7 @@ def main():
     game = Game(player_names)
     
     # Play a single hand
-    play_hand(game)
+    play(game)
     
     # Display final chips
     print("\n=== GAME SUMMARY ===")
