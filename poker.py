@@ -7,7 +7,7 @@ from game.poker_game import Game
 from config import NUM_PLAYERS
 import random
 
-def display_player_info(player):
+def display_initial_player_info(player):
     """Display information about a player."""
     hand_str = str(player.hand) if not player.is_folded else "Folded"
     player_type = "(YOU)" if player.is_human else "(NPC)"
@@ -32,14 +32,12 @@ def get_human_action(game, valid_actions):
     """
     player = game.players[game.current_player_index]
     
-    print(f"\nYour turn, {player.name}!")
-    print(f"Your hand: {player.hand}")
-    print(f"Your chips: {player.chips}")
+    print(f"Your hand: {player.hand}; your chips: {player.chips}")
     print(f"Current bet to match: {game.current_bet}")
     print(f"Your current bet: {player.current_bet}")
     
     # Display enumerated options
-    print("\nAvailable actions:")
+    print(f"\nYour turn, {player.name}!")
     for i, action in enumerate(valid_actions, 1):
         print(f"{i}. {action.capitalize()}")
     
@@ -56,7 +54,6 @@ def get_human_action(game, valid_actions):
     
     # Process action based on type
     if action in ["fold", "check", "call"]:
-        print(f"You chose to {action}.")
         return action, 0
         
     # Handle raise action
@@ -142,7 +139,7 @@ def play_hand(game):
     for player in game.players:
         # Only show cards for the human player
         if player.is_human:
-            display_player_info(player)
+            display_initial_player_info(player)
         else:
             # Hide NPC cards
             print(f"{player.name} (NPC): Chips: {player.chips}, Bet: {player.current_bet}, Hand: [Hidden]")

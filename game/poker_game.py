@@ -97,6 +97,9 @@ class Game:
         for player in self.players:
             player.current_bet = 0
             
+        # Display current pot amount
+        print(f"Current pot: {self.pot}")
+        
         # Deal community cards for the new round
         new_cards = self.deal_community_cards()
         
