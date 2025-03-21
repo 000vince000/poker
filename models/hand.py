@@ -64,12 +64,7 @@ class Hand:
         return False
     
     def has_flush(self):
-        for i in range(0,4):
-            if self.cards[i].suit != self.cards[i+1].suit: return False
-        return True
-        # Check if all cards have the same suit
-        # Alt: use a set base approach with one-shot answer
-        #return len(set(card.suit for card in self.cards)) == 1
+        return len(set(card.suit for card in self.cards)) == 1
 
     def has_full_house(self):
         """Check if the hand contains a full house (three of a kind and a pair)."""
