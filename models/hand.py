@@ -1,7 +1,7 @@
 """
 Hand class for representing a player's poker hand.
 """
-from config import CARD_VALUES
+from config import CARD_VALUES, SUIT_VALUES
 
 class Hand:
     def __init__(self):
@@ -90,3 +90,80 @@ class Hand:
     def has_royal_flush(self):
         if not self.has_straight_flush(): return False
         return set(card.value for card in self.cards) == {'10', 'J', 'Q', 'K', 'A'}
+
+    def calculate_score(self, hand_rank):
+        """
+        Calculate and store the composite score for this hand based on hand rank.
+        This method extracts the relevant cards during hand evaluation to avoid redundant 
+        pattern detection in tiebreakers.
+        
+        Args:
+            hand_rank: Integer representing the hand rank (0-9)
+            
+        Returns:
+            int: A composite score that combines card value and suit
+        """
+        if hand_rank == 9:  # Royal flush
+            # Only suit matters for royal flush
+            highest_card = next(card for card in self.cards if card.value == 'A')
+            self.tiebreaker_score = 14 * 10 + SUIT_VALUES[highest_card.suit]
+        
+        elif hand_rank in [0, 5]:  # High Card or Flush
+            # Find highest card
+            highest_value = max(CARD_VALUES[card.value] for card in self.cards)
+            highest_card = next(card for card in self.cards if CARD_VALUES[card.value] == highest_value)
+            self.tiebreaker_score = highest_value * 10 + SUIT_VALUES[highest_card.suit]
+        
+        elif hand_rank in [4, 8]:  # Straight or Straight Flush
+            # Handle special case: A-5 straight (Ace is low)
+            values = sorted([CARD_VALUES[card.value] for card in self.cards])
+            if set(values) == {2, 3, 4, 5, 14}:
+                five_card = next(card for card in self.cards if CARD_VALUES[card.value] == 5)
+                self.tiebreaker_score = 5 * 10 + SUIT_VALUES[five_card.suit]
+            else:
+                highest_value = max(CARD_VALUES[card.value] for card in self.cards)
+                highest_card = next(card for card in self.cards if CARD_VALUES[card.value] == highest_value)
+                self.tiebreaker_score = highest_value * 10 + SUIT_VALUES[highest_card.suit]
+        
+        elif hand_rank == 1:  # One Pair
+            # Find the pair
+            rank_counts = self.get_rank_counts()
+            pair_rank = next(rank for rank, count in rank_counts.items() if count == 2)
+            pair_value = CARD_VALUES[pair_rank]
+            pair_cards = [card for card in self.cards if card.value == pair_rank]
+            highest_suit = max(SUIT_VALUES[card.suit] for card in pair_cards)
+            self.tiebreaker_score = pair_value * 10 + highest_suit
+        
+        elif hand_rank == 2:  # Two Pair
+            # Find high pair
+            rank_counts = self.get_rank_counts()
+            pair_ranks = [rank for rank, count in rank_counts.items() if count == 2]
+            high_pair_rank = max(pair_ranks, key=lambda r: CARD_VALUES[r])
+            high_pair_value = CARD_VALUES[high_pair_rank]
+            high_pair_cards = [card for card in self.cards if card.value == high_pair_rank]
+            highest_suit = max(SUIT_VALUES[card.suit] for card in high_pair_cards)
+            self.tiebreaker_score = high_pair_value * 10 + highest_suit
+        
+        elif hand_rank in [3, 6]:  # Three of a Kind or Full House
+            # Find the triplet
+            rank_counts = self.get_rank_counts()
+            triplet_rank = next(rank for rank, count in rank_counts.items() if count == 3)
+            triplet_value = CARD_VALUES[triplet_rank]
+            triplet_cards = [card for card in self.cards if card.value == triplet_rank]
+            highest_suit = max(SUIT_VALUES[card.suit] for card in triplet_cards)
+            self.tiebreaker_score = triplet_value * 10 + highest_suit
+        
+        elif hand_rank == 7:  # Four of a Kind
+            # Find the quad
+            rank_counts = self.get_rank_counts()
+            quad_rank = next(rank for rank, count in rank_counts.items() if count == 4)
+            quad_value = CARD_VALUES[quad_rank]
+            quad_cards = [card for card in self.cards if card.value == quad_rank]
+            highest_suit = max(SUIT_VALUES[card.suit] for card in quad_cards)
+            self.tiebreaker_score = quad_value * 10 + highest_suit
+        
+        else:
+            # Default fallback (should not happen)
+            self.tiebreaker_score = 0
+        
+        return self.tiebreaker_score

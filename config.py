@@ -15,4 +15,12 @@ CARD_VALUES = {
 }
 
 # Card suits
-CARD_SUITS = ['Clubs','Diamonds','Hearts','Spades'] 
+CARD_SUITS = ['Clubs','Diamonds','Hearts','Spades']
+
+# Suit rankings for tiebreaking (higher value = higher rank)
+SUIT_VALUES = {
+    'Clubs': 1,      # Lowest
+    'Diamonds': 2,
+    'Hearts': 3,
+    'Spades': 4      # Highest
+} 

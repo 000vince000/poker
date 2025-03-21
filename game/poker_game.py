@@ -300,8 +300,8 @@ class Game:
             player: The player to evaluate
             
         Returns:
-            tuple: (hand_rank, best_hand) where hand_rank is a value 1-9
-                  (1=high card, 2=pair, ..., 9=straight flush)
+            tuple: (hand_rank, best_hand) where hand_rank is a value 0-9
+                  (0=high card, 1=pair, ..., 9=royal flush)
         """
         # Combine player's cards with community cards
         all_cards = player.hand.cards + self.community_cards.cards
@@ -310,7 +310,7 @@ class Game:
         possible_hands = list(itertools.combinations(all_cards, 5))
         
         # Find the best hand
-        best_hand_rank = 0
+        best_hand_rank = -1
         best_hand = None
         
         for cards in possible_hands:
@@ -320,7 +320,7 @@ class Game:
                 temp_hand.add_card(card)
                 
             # Check for various poker hands (in descending order of rank)
-            hand_rank = 0
+            hand_rank = -1
             
             if temp_hand.has_royal_flush():
                 hand_rank = 9
@@ -347,6 +347,8 @@ class Game:
             if hand_rank > best_hand_rank:
                 best_hand_rank = hand_rank
                 best_hand = temp_hand
+                # Calculate the tiebreaker score immediately
+                best_hand.calculate_score(best_hand_rank)
         
         return best_hand_rank, best_hand
         
@@ -372,7 +374,15 @@ class Game:
         # Find the highest hand rank
         highest_rank = max(rank for _, rank, _ in player_hands)
         
-        # All players with the highest rank are winners
-        winners = [player for player, rank, _ in player_hands if rank == highest_rank]
+        # Get all players with the highest rank
+        highest_rank_players = [(player, hand) for player, rank, hand in player_hands if rank == highest_rank]
         
-        return winners
+        # If only one player has the highest rank, they win
+        if len(highest_rank_players) == 1:
+            return [highest_rank_players[0][0]]
+        
+        # Find the highest tiebreaker score among players with the highest rank
+        best_score = max(hand.tiebreaker_score for _, hand in highest_rank_players)
+        
+        # Return all players who have the highest tiebreaker score
+        return [player for player, hand in highest_rank_players if hand.tiebreaker_score == best_score]
